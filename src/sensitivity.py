@@ -22,7 +22,7 @@ def compute_B1c(B0, B1):
     """
 
     B0_dot_B0 = np.sum(B0 * B0, axis=-1)
-    B0_dot_B0_safe = np.where(B0_dot_B0 == 0, 1e-20, B0_dot_B0)
+    B0_dot_B0_safe = np.where(B0_dot_B0 == 0, 1.0, B0_dot_B0) # Had a zero division error oops, what are the odds honestly
 
     B1_dot_B0 = np.sum(B1 * B0, axis=-1)
 
@@ -36,26 +36,26 @@ def compute_B1c(B0, B1):
 # Equation (4): m_asy term (CPMG response)
 # ------------------------------------------------------------------
 
-def compute_masy(Domega0, omega1, Omega, t90, t180, te):
+def compute_masy(Domega0, omega1, Big_omega, t90, t180, te):
     """
-    Compute masy according to Eq. (4) with numerical safeguards.
+    Compute masy according to Eq. (4)
     """
 
-    eps = 1e-20
+    #eps = 1e-20
 
-    omega1_safe = np.where(np.abs(omega1) < eps, eps, omega1)
-    Omega_safe = np.where(np.abs(Omega) < eps, eps, Omega)
+    #omega1_safe = np.where(np.abs(omega1) < eps, eps, omega1)
+    #Big_omega_safe = np.where(np.abs(Big_omega) < eps, eps, Big_omega)
 
-    term1 = (Omega_safe / omega1_safe) * (
-        np.sin(Domega0 * te / 2) /
-        np.tan(Omega_safe * t180 / 2 + eps)
+    term1 = (Big_omega / omega1) * (
+        np.sin(Domega0 * te / 2) *
+        1/(np.tan(Big_omega * t180 / 2))
     )
 
-    term2 = (Domega0 / omega1_safe) * np.cos(Domega0 * te / 2)
+    term2 = (Domega0 / omega1) * np.cos(Domega0 * te / 2)
 
     denominator = 1 + (term1 + term2) ** 2
 
-    masy = (omega1_safe / Omega_safe) * np.sin(Omega_safe * t90) / denominator
+    masy = (omega1 / Big_omega) * np.sin(Big_omega * t90) / denominator
 
     return masy
 
@@ -67,17 +67,16 @@ def compute_masy(Domega0, omega1, Omega, t90, t180, te):
 def compute_cpmg_signal(
     B0,
     B1,
-    I=1.0,
+    I=4.0,
     t90=None,
     t180=None,
     te=150e-6,
     gamma_bar=42.58e6,   # Hz/T
     chi=4e-9,
     Q=20,
-    voxel_volume=1e-18,  # m^3
+    voxel_size=2.5e-7,  # m^2
 ):
     """
-    Compute voxel-wise CPMG signal contribution.
 
     Parameters
     ----------
@@ -95,15 +94,15 @@ def compute_cpmg_signal(
         Magnetic susceptibility
     Q : float
         Coil quality factor
-    voxel_volume : float
-        Voxel volume for spatial integration
+    voxel_size : float
+        Voxel size for spatial integration
 
     Returns
     -------
     signal_map : ndarray (complex)
     """
 
-    mu0 = 4 * np.pi * 1e-7
+    mu0 = 4e-7 * np.pi
     gamma = 2 * np.pi * gamma_bar  # rad/s/T
 
     # Magnitude of B0
@@ -124,31 +123,37 @@ def compute_cpmg_signal(
         t90 = t180 / 2
 
     # Frequency offsets
-    Domega0 = gamma * B0_mag - 2 * np.pi * f_rf
+    Domega0 =  gamma * B0_mag - (2 * np.pi * f_rf)
     omega1 = gamma * B1c_mag
-    Omega = np.sqrt(Domega0**2 + omega1**2)
+    Big_omega = np.sqrt(Domega0**2 + omega1**2)
 
     # Compute masy
-    masy = compute_masy(Domega0, omega1, Omega, t90, t180, te)
+    masy = compute_masy(Domega0, omega1, Big_omega, t90, t180, te)
+    #masy = omega1 * t90
 
     # Resonator transfer function F(Δω0)
     f = gamma_bar * B0_mag
-    F = Q / (1 + 1j * Q * (f / f_rf - f_rf / f))
+    F = Q / (1 + 1j * Q * ((f / f_rf) - (f_rf / f)))
 
     # Equation (3) scalar components:
     # γ B0 · (χ/μ0) B0 · (B1c/I) · F · masy
 
-    prefactor = gamma * (chi / mu0)
-
     signal_map = (
-        prefactor
+        chi / mu0
         * B0_mag**2
+        * gamma
         * (B1c_mag / I)
         * F
         * masy
-        * voxel_volume
+        * voxel_size
     )
 
     signal_map = np.nan_to_num(signal_map)
-
+    #signal_map = np.sum(signal_map)
+    print("abs(signal_map) range:",
+        np.min(np.abs(signal_map)),
+        np.max(np.abs(signal_map)))
+    print("abs(masy) range:",
+        np.min(np.abs(masy)),
+        np.max(np.abs(masy)))
     return signal_map

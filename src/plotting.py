@@ -45,7 +45,6 @@ def plot_contour(
     cbar = fig.colorbar(contour)
     if cbar_label:
         cbar.set_label(cbar_label)
-
     if title:
         ax.set_title(title)
     if xlabel:
@@ -53,7 +52,7 @@ def plot_contour(
     if ylabel:
         ax.set_ylabel(ylabel)
 
-    ax.set_aspect("equal")
+    ax.set_aspect("auto")
     plt.tight_layout()
     plt.show()
 
