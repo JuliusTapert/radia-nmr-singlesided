@@ -2,7 +2,7 @@ import numpy as np
 import radia as rad
 
 
-def sample_plane(field_object, plane, sweep1, sweep2, fixed_coord=0.0):
+def SamplePlane(field_object, plane, sweep1, sweep2, fixed_coord=0.0):
 
     n1 = sweep1["n"]
     n2 = sweep2["n"]
@@ -38,7 +38,6 @@ def sample_plane(field_object, plane, sweep1, sweep2, fixed_coord=0.0):
 
     # Reshape into (n2, n1, 3)
     B_array = np.array(B_vals).reshape((n2, n1, 3))
-
     return B_array, axis1_vals, axis2_vals
 
 
