@@ -25,7 +25,7 @@ def main():
 
     x_sweep = {"min": -8.0, "max": 8.0, "n": 101}
     y_sweep = {"min": -8.0, "max": 8.0, "n": 101}
-    z_sweep = {"min": 0.1, "max": 10.0, "n": 101}
+    z_sweep = {"min": 0.1, "max": 5.0, "n": 101}
 
     #These are optionally used in SamplePlane calls as the fixed_coord argument
     x_plane = 0.0
@@ -100,6 +100,7 @@ def main():
     dx_mm = np.mean(np.diff(B1_x_vals))
     dz_mm = np.mean(np.diff(B1_z_vals))
     voxel_size = (dx_mm * 1e-3) * (dz_mm * 1e-3)
+
     # === Sensitivity map === #
     signalmap = compute_cpmg_signal(B0_vec, B1_vec, coil_current, voxel_size)
     print("min:", np.min(np.abs(signalmap)))
@@ -113,7 +114,7 @@ def main():
         xlabel="X [mm]",
         ylabel="Z [mm]",
         cbar_label="Magnetic Flux [T m/s]",
-        levels=np.linspace(0,1e-8,101),
+        levels=np.linspace(0,1e-9,101),
         cmap="plasma"
     )
     

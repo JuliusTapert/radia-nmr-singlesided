@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+title: radia-nmr-singlesided
+message: Good luck if you're on Apple Silicon. I don't know how well Radia will work from now on
+type: software
+authors:
+  - given-names: Julius
+    family-names: Tapert
+    email: julius.tapert@icloud.com
+    affiliation: MGH
+repository-code: 'https://github.com/JuliusTapert/radia-nmr-singlesided'
+abstract: >-
+  A parameterised package for simulating B0, B1, and signal
+  map of a concentric barrel magnet and the approximation of
+  an RF coil.
+keywords:
+  - nmr
+  - single sided nmr
+  - magnet
+  - CPMG
+  - rf coil
+  - sensitivity
+version: 1.0.0
+date-released: '2026-03-09'

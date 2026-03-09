@@ -133,7 +133,8 @@ def compute_cpmg_signal(
 
     # Resonator transfer function F(Δω0)
     f = gamma_bar * B0_mag
-    F = Q / (1 + 1j * Q * ((f / f_rf) - (f_rf / f)))
+    #F = Q / (1 + 1j * Q * ((f / f_rf) - (f_rf / f)))
+    F=1
 
     # Equation (3) scalar components:
     # γ B0 · (χ/μ0) B0 · (B1c/I) · F · masy
