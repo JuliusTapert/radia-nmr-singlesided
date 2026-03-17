@@ -21,7 +21,7 @@ def main():
 
     steelmat = rad.MatSatIsoFrm([20000,2],[0.1,2],[0.1,2])
     coil_positions = [1.0, 2.5, 4.0, 8.5, 10.0, 11.5]
-    coil_current = 1.0
+    coil_current = 4.0
 
     x_sweep = {"min": -8.0, "max": 8.0, "n": 101}
     y_sweep = {"min": -8.0, "max": 8.0, "n": 101}
@@ -58,7 +58,7 @@ def main():
         fixed_coord=y_plane,
     )
 
-    B0_mag = np.linalg.norm(B0_vec, axis=2)
+    B0_mag = np.linalg.norm(B0_vec, axis=-1)
 
     """plot_contour(
         B0_mag,
@@ -71,7 +71,7 @@ def main():
         levels=np.linspace(0.1,0.2,20)
     )"""
 
-    # === Sample and display B1c === #
+    # === Sample and display B1c + associated axes just for consistency === #
     B1_vec, B1_x_vals, B1_z_vals = SamplePlane(
         coil_obj,
         plane="xz",
@@ -80,13 +80,12 @@ def main():
         fixed_coord=y_plane,
     )
 
-    B1_mag = np.linalg.norm(B1_vec, axis=2)
+    B1_mag = np.linalg.norm(B1_vec, axis=-1)
     B1c_mag = np.linalg.norm(compute_B1c(B0_vec,B1_vec),axis=-1)
     print("Raw B1c mag:",
         np.min(B1c_mag),
         np.max(B1c_mag))
-
-    plot_contour(
+    """plot_contour(
         np.abs(B1c_mag),
         B1_x_vals,
         B1_z_vals,
@@ -94,15 +93,16 @@ def main():
         xlabel="X [mm]",
         ylabel="Z [mm]",
         cbar_label="|B1c| [T]",
-        levels=np.linspace(1e-7, 3e-4, 50),
-    )
+        levels=np.linspace(1e-6, 3e-3, 50),
+    )"""
 
     dx_mm = np.mean(np.diff(B1_x_vals))
     dz_mm = np.mean(np.diff(B1_z_vals))
     voxel_size = (dx_mm * 1e-3) * (dz_mm * 1e-3)
 
     # === Sensitivity map === #
-    signalmap = compute_cpmg_signal(B0_vec, B1_vec, coil_current, voxel_size)
+    #Returns a normalised signal map between 0 and 1 that includes both real and complex channels
+    signalmap = compute_cpmg_signal(B0_vec, B1_vec, horizontal_range=B1_x_vals, I=coil_current, voxel_size=voxel_size)
     print("min:", np.min(np.abs(signalmap)))
     print("max:", np.max(np.abs(signalmap)))
     print("median:", np.median(np.abs(signalmap)))
@@ -113,8 +113,8 @@ def main():
         title="Sensitivity Map (XZ Plane, Y = 0)",
         xlabel="X [mm]",
         ylabel="Z [mm]",
-        cbar_label="Magnetic Flux [T m/s]",
-        levels=np.linspace(0,1e-9,101),
+        cbar_label="Signal (normalised, dimensionless)",
+        levels=np.linspace(0,1,101),
         cmap="plasma"
     )
     

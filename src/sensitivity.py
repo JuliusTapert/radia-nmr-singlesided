@@ -1,15 +1,11 @@
 import numpy as np
 
 
-# ------------------------------------------------------------------
-# Equation (2): Compute B1c (perpendicular circular component vector)
-# ------------------------------------------------------------------
-
 def compute_B1c(B0, B1):
     """
     Compute B1c according to:
 
-    B1c = 1/2 [ B1 - B0 (B1·B0)/(B0·B0) ]
+    B1c = 1/2 [ B1 - B0 (B1*B0)/(B0*B0) ]
 
     Parameters
     ----------
@@ -32,49 +28,43 @@ def compute_B1c(B0, B1):
     return B1c
 
 
-# ------------------------------------------------------------------
-# Equation (4): m_asy term (CPMG response)
-# ------------------------------------------------------------------
 
 def compute_masy(Domega0, omega1, Big_omega, t90, t180, te):
     """
     Compute masy according to Eq. (4)
     """
 
-    #eps = 1e-20
+    eps = 1e-12
 
-    #omega1_safe = np.where(np.abs(omega1) < eps, eps, omega1)
-    #Big_omega_safe = np.where(np.abs(Big_omega) < eps, eps, Big_omega)
+    omega1_safe = np.where(np.abs(omega1) < eps, eps, omega1)
 
-    term1 = (Big_omega / omega1) * (
+    term1 = (Big_omega / omega1_safe) * (
         np.sin(Domega0 * te / 2) *
         1/(np.tan(Big_omega * t180 / 2))
     )
 
-    term2 = (Domega0 / omega1) * np.cos(Domega0 * te / 2)
+    term2 = (Domega0 / omega1_safe) * np.cos(Domega0 * te / 2)
 
-    denominator = 1 + (term1 + term2) ** 2
+    denominator = 1 + (term1 + term2)**2
 
-    masy = (omega1 / Big_omega) * np.sin(Big_omega * t90) / denominator
+    masy = (omega1_safe / Big_omega) * np.sin(Big_omega * t90) / denominator
 
     return masy
 
 
-# ------------------------------------------------------------------
-# Equation (3): Sensitivity / Signal Map
-# ------------------------------------------------------------------
 
 def compute_cpmg_signal(
     B0,
     B1,
+    horizontal_range,
     I=4.0,
     t90=None,
     t180=None,
     te=150e-6,
     gamma_bar=42.58e6,   # Hz/T
-    chi=4e-9,
+    chi=4.04e-9,
     Q=20,
-    voxel_size=2.5e-7,  # m^2
+    voxel_size=2.5e-9,  # m^2
 ):
     """
 
@@ -111,14 +101,27 @@ def compute_cpmg_signal(
     # Compute B1c vector and magnitude
     B1c_vec = compute_B1c(B0, B1)
     B1c_mag = np.linalg.norm(B1c_vec, axis=-1)
+    print(np.shape(B1c_mag))
+
+    # Find B0 and B1 around the saddle point
+    ix0 = np.argmin(np.abs(horizontal_range))     # picks the middle of the sampling plane
+
+    B0p = B0_mag[:, ix0]                # axial B0 profile
+    dB0p = np.diff(B0p, axis=-1)
+
+    sweetspot_idx = np.argmin(np.abs(dB0p))
+    B0_sweetspot = B0p[sweetspot_idx]
+
+    B1p = B1c_mag[:, ix0]               # axial B1 profile
+    B1_norm = B1p[sweetspot_idx]
 
     # Reference RF frequency
-    f_rf = gamma_bar * np.median(B0_mag)
+    f_rf = gamma_bar * B0_sweetspot
 
     # Default pulse durations
     if t180 is None:
-        B1_ref = np.median(B1c_mag)
-        t180 = np.pi / (gamma * B1_ref)
+        t180 = np.pi / (gamma * B1_norm)
+
     if t90 is None:
         t90 = t180 / 2
 
@@ -133,8 +136,7 @@ def compute_cpmg_signal(
 
     # Resonator transfer function F(Δω0)
     f = gamma_bar * B0_mag
-    #F = Q / (1 + 1j * Q * ((f / f_rf) - (f_rf / f)))
-    F=1
+    F = Q / (1 + 1j * Q * ((f / f_rf) - (f_rf / f)))
 
     # Equation (3) scalar components:
     # γ B0 · (χ/μ0) B0 · (B1c/I) · F · masy
@@ -150,11 +152,12 @@ def compute_cpmg_signal(
     )
 
     signal_map = np.nan_to_num(signal_map)
-    #signal_map = np.sum(signal_map)
+
+    #Normalise signal_map to sit between 0 and 1 for ease of use
+    signal_map = signal_map / np.max(np.abs(signal_map[:,ix0]))
+    print(np.shape(masy))
+
     print("abs(signal_map) range:",
         np.min(np.abs(signal_map)),
         np.max(np.abs(signal_map)))
-    print("abs(masy) range:",
-        np.min(np.abs(masy)),
-        np.max(np.abs(masy)))
     return signal_map
