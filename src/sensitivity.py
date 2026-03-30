@@ -23,7 +23,7 @@ def compute_B1c(B0, B1):
     B1_dot_B0 = np.sum(B1 * B0, axis=-1)
 
     projection = (B1_dot_B0[..., None] / B0_dot_B0_safe[..., None]) * B0
-    B1c = 0.5 * (B1 - projection)
+    B1c = (B1 - projection)
 
     return B1c
 
@@ -57,6 +57,7 @@ def compute_cpmg_signal(
     B0,
     B1,
     horizontal_range,
+    vertical_range,
     I=4.0,
     t90=None,
     t180=None,
@@ -101,16 +102,22 @@ def compute_cpmg_signal(
     # Compute B1c vector and magnitude
     B1c_vec = compute_B1c(B0, B1)
     B1c_mag = np.linalg.norm(B1c_vec, axis=-1)
-    print(np.shape(B1c_mag))
 
-    # Find B0 and B1 around the saddle point
-    ix0 = np.argmin(np.abs(horizontal_range))     # picks the middle of the sampling plane
+    # Find B0 and B1 aroun the saddle point
+    ix0 = np.argmin(np.abs(horizontal_range))     # picks the zero value of the sampling plane
 
     B0p = B0_mag[:, ix0]                # axial B0 profile
     dB0p = np.diff(B0p, axis=-1)
 
     sweetspot_idx = np.argmin(np.abs(dB0p))
+
+    v_sweetspot = vertical_range[sweetspot_idx]
+    h_sweetspot = horizontal_range[ix0]
     B0_sweetspot = B0p[sweetspot_idx]
+
+    print("Saddle point:")
+    print("(", h_sweetspot, ",", v_sweetspot, ")")
+    print(B0_sweetspot, "T")
 
     B1p = B1c_mag[:, ix0]               # axial B1 profile
     B1_norm = B1p[sweetspot_idx]
@@ -155,7 +162,6 @@ def compute_cpmg_signal(
 
     #Normalise signal_map to sit between 0 and 1 for ease of use
     signal_map = signal_map / np.max(np.abs(signal_map[:,ix0]))
-    print(np.shape(masy))
 
     print("abs(signal_map) range:",
         np.min(np.abs(signal_map)),

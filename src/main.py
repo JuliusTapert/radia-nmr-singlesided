@@ -7,47 +7,93 @@ from plotting import plot_contour
 from sensitivity import *
 import numpy as np
 
-def main():
-    # === User params ===
-    tseg = 18
-    magnet_vertical_spacing = 4.4
-    outer_magnet_thickness = 25.4
-    outer_magnet_height = outer_magnet_thickness/2
+magnet_specs = {
+    "tseg": 18,
+    "magnet_vertical_spacing": 4.4,
+    "outer_magnet_thickness": 25.4,
+    "outer_magnet_height": 25.4/2,
+    "mg": [-1.235, 0, 0]
+}
 
-    inner_ring_magnet = [1.6, 9.5, 11, (11/2+magnet_vertical_spacing), tseg, [-1.235, 0, 0]]
-    outer_ring_magnet = [12.5, 25.4, outer_magnet_thickness, outer_magnet_height, tseg, [-1.235, 0, 0]]  
-    steel_wall = [25.5, 35.4, 12.9, (outer_magnet_height+(12.9/2)), tseg]
-    steel_baseplate = [2, 35.4, 10, (25.4 + 5), tseg]
+coil_positions = [1.0, 2.5, 4.0, 8.5, 10.0, 11.5]
+coil_thickness = 2.5
+coil_current = 4.0
+
+def magnet_builder():
+    # ==========================================================================
+    # Building ring-shaped components (inner, outer magnets and wall/baseplate)
+    # ==========================================================================
 
     steelmat = rad.MatSatIsoFrm([20000,2],[0.1,2],[0.1,2])
-    coil_positions = [1.0, 2.5, 4.0, 8.5, 10.0, 11.5]
-    coil_current = 4.0
 
-    x_sweep = {"min": -8.0, "max": 8.0, "n": 101}
+    class CircularComponent:
+        def __init__(self, inner_radius, outer_radius, length, height, segmentation, magnetisation):
+            self.data = {"inner_radius": inner_radius, 
+                        "outer_radius": outer_radius,
+                        "lx": length,
+                        "h": height,
+                        "tseg": segmentation,
+                        "mg": magnetisation}
+            
+    inner_ring_magnet = CircularComponent(1.6, 
+                                    9.5, 
+                                    11, 
+                                    (11/2+magnet_specs["magnet_vertical_spacing"]), 
+                                    magnet_specs["tseg"], 
+                                    magnet_specs["mg"])
+    outer_ring_magnet = CircularComponent(12.5,
+                                    25.4,
+                                    magnet_specs["outer_magnet_thickness"],
+                                    magnet_specs["outer_magnet_height"],
+                                    magnet_specs["tseg"],
+                                    magnet_specs["mg"])
+    steel_wall = CircularComponent(25.5,
+                            35.4,
+                            12.9,
+                            magnet_specs["outer_magnet_height"]+(12.9/2),
+                            magnet_specs["tseg"],
+                            [0,0,0])
+    steel_baseplate = CircularComponent(2, 
+                                    35.4, 
+                                    10, 
+                                    (25.4 + 5), 
+                                    magnet_specs["tseg"], 
+                                    [0,0,0])
+
+    # === Build objects ===
+    inner_magnet_obj = build_ring_geometry(**inner_ring_magnet.data)
+    outer_magnet_obj = build_ring_geometry(**outer_ring_magnet.data)
+    steel_assembly = build_steel_assembly(steel_baseplate, steel_wall, steelmat)
+    coil_obj = build_coil(coil_positions, coil_thickness, coil_current)
+
+    magnet_assembly = rad.ObjCnt([inner_magnet_obj, 
+                                  outer_magnet_obj, 
+                                  steel_assembly
+                                  ])
+    rad.TrfZerPerp(magnet_assembly, [0,0,0], [0,0,1])
+    rad.TrfZerPerp(magnet_assembly, [0,0,0], [0,1,0])
+
+    return magnet_assembly, coil_obj
+    
+def solver(magnet_assembly, coil_obj):
+
+    # === Solve fields ===
+    g = rad.TrfMlt(magnet_assembly, rad.TrfRot([0,0,0], [0,1,0], np.pi/2), 1)
+    rad_vtk.plot_vtk(g)
+    res = rad.Solve(g, 0.00001, 150000)
+    print("Geometry index:", g)
+    print("Solver result:", res)
+
+
+    x_sweep = {"min": -10.0, "max": 10.0, "n": 101}
     y_sweep = {"min": -8.0, "max": 8.0, "n": 101}
-    z_sweep = {"min": 0.1, "max": 5.0, "n": 101}
+    z_sweep = {"min": 0, "max": 20.0, "n": 101}
 
     #These are optionally used in SamplePlane calls as the fixed_coord argument
     x_plane = 0.0
     y_plane = 0.0
     z_plane = 6.0
 
-    # === Build objects ===
-    inner_magnet_obj = build_ring_geometry(*inner_ring_magnet)
-    outer_magnet_obj = build_ring_geometry(*outer_ring_magnet)
-    steel_assembly = build_steel_assembly(steel_baseplate, steel_wall, steelmat)
-    coil_obj = build_coil(coil_positions, coil_current)
-
-    magnet_assembly = rad.ObjCnt([inner_magnet_obj, outer_magnet_obj, steel_assembly])
-    rad.TrfZerPerp(magnet_assembly, [0,0,0], [0,0,1])
-    rad.TrfZerPerp(magnet_assembly, [0,0,0], [0,1,0])
-
-    # === Solve fields and export ===
-    g = rad.TrfMlt(magnet_assembly, rad.TrfRot([0,0,0], [0,1,0], np.pi/2), 1)
-    #rad_vtk.plot_vtk(g)
-    res = rad.Solve(g, 0.00001, 150000)
-    print("Geometry index:", g)
-    print("Solver result:", res)
     
     # === Sample and display B0 === #
     B0_vec, B0_x_vals, B0_z_vals = SamplePlane(
@@ -102,7 +148,7 @@ def main():
 
     # === Sensitivity map === #
     #Returns a normalised signal map between 0 and 1 that includes both real and complex channels
-    signalmap = compute_cpmg_signal(B0_vec, B1_vec, horizontal_range=B1_x_vals, I=coil_current, voxel_size=voxel_size)
+    signalmap = compute_cpmg_signal(B0_vec, B1_vec, horizontal_range=B1_x_vals, vertical_range=B1_z_vals, I=coil_current, voxel_size=voxel_size)
     print("min:", np.min(np.abs(signalmap)))
     print("max:", np.max(np.abs(signalmap)))
     print("median:", np.median(np.abs(signalmap)))
@@ -117,7 +163,9 @@ def main():
         levels=np.linspace(0,1,101),
         cmap="plasma"
     )
-    
+
+def main():
+    solver(*magnet_builder())
 
 if __name__ == "__main__":
     main()

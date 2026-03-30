@@ -20,7 +20,7 @@ x_centre = [1.0, 2.5, 4.0, 8.5, 10.0, 11.5]
 wires = []
 
 for idx, x in enumerate(x_centre):
-    current = 1 if idx <= 2 else -1 # Note this approximation really only works with these x_centre values. Sorry. If you want more wires, you need to redefine this. Just vibe code if you want
+    current = 4 if idx <= 2 else -4 # Note this approximation really only works with these x_centre values. Sorry. If you want more wires, you need to redefine this. Just vibe code if you want
     wires.append(rad.ObjFlmCur([[x,-lx/2,0], [x,lx/2,0]], current))
 
 coil = rad.ObjCnt(wires)
@@ -33,7 +33,7 @@ def solveMagnetism_xy(fieldobject):
     xMin, xMax, nx = -9.99, 9.99, 201
     yMin, yMax, ny = -9.99, 9.99, 201
 
-    z_plane = 3   #This allows us to visualise the coil more directly
+    z_plane = 0.1   #This allows us to visualise the coil more directly
     x_vals = np.linspace(xMin, xMax, nx)
     y_vals = np.linspace(yMin, yMax, ny)
 
@@ -192,6 +192,6 @@ if __name__=="__main__":
     B = rad.Fld(g, 'b', [0,0,3])
     print(B)
     print(np.linalg.norm(B))
-    #solveMagnetism_xy(g)
+    solveMagnetism_xy(g)
     #solveMagnetism_yz(g)
-    solveMagnetism_xz(g)
+    #solveMagnetism_xz(g)
