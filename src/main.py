@@ -79,7 +79,7 @@ def solver(magnet_assembly, coil_obj):
 
     # === Solve fields ===
     g = rad.TrfMlt(magnet_assembly, rad.TrfRot([0,0,0], [0,1,0], np.pi/2), 1)
-    rad_vtk.plot_vtk(g)
+    #rad_vtk.plot_vtk(g)
     res = rad.Solve(g, 0.00001, 150000)
     print("Geometry index:", g)
     print("Solver result:", res)
@@ -106,7 +106,7 @@ def solver(magnet_assembly, coil_obj):
 
     B0_mag = np.linalg.norm(B0_vec, axis=-1)
 
-    """plot_contour(
+    plot_contour(
         B0_mag,
         B0_x_vals,
         B0_z_vals,
@@ -114,8 +114,8 @@ def solver(magnet_assembly, coil_obj):
         xlabel="X [mm]",
         ylabel="Z [mm]",
         cbar_label="|B0| [T]",
-        levels=np.linspace(0.1,0.2,20)
-    )"""
+        levels=np.linspace(0.1,0.2,40)
+    )
 
     # === Sample and display B1c + associated axes just for consistency === #
     B1_vec, B1_x_vals, B1_z_vals = SamplePlane(
