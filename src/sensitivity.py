@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def compute_B1c(B0, B1):
     """
     Compute B1c according to:

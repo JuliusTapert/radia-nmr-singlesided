@@ -2,7 +2,7 @@ import numpy as np
 import radia as rad
 
 
-def SamplePlane(field_object, plane, sweep1, sweep2, fixed_coord=0.0):
+def sample_plane(field_object, plane, sweep1, sweep2, fixed_coord=0.0):
 
     n1 = sweep1["n"]
     n2 = sweep2["n"]
@@ -42,9 +42,6 @@ def SamplePlane(field_object, plane, sweep1, sweep2, fixed_coord=0.0):
 
 
 def export_plane(B_array, axis1_vals, axis2_vals, filename):
-    """
-    Export vector field plane to compressed file.
-    """
     np.savez_compressed(
         filename,
         B=B_array,

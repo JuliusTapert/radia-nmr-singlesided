@@ -1,7 +1,7 @@
 import math
 import radia as rad
 
-def build_ring_geometry(inner_radius, outer_radius, lx, h, tseg, mg=[0,0,0]):
+def build_ring_geometry(inner_radius, outer_radius, lz, h, tseg, mg=[0,0,0]):
     #Build a segmented ring (magnet or steel) from an arbitrarily angular trapezoid based on segmentation
 
     theta_segment = math.pi / (2 * tseg)
@@ -17,7 +17,7 @@ def build_ring_geometry(inner_radius, outer_radius, lx, h, tseg, mg=[0,0,0]):
             [inner_radius * math.cos(phi1), inner_radius * math.sin(phi1)],
             [inner_radius * math.cos(phi0), inner_radius * math.sin(phi0)]
         ]
-        wedge = rad.ObjThckPgn(h, lx, verts, mg)
+        wedge = rad.ObjThckPgn(h, lz, verts, 'z', mg)
         color = [0.5,0.5,0.5] if mg==[0,0,0] else [0.9,0.2,0.1]
         rad.ObjDrwAtr(wedge, color)
         ring_wedges.append(wedge)
