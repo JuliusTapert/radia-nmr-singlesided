@@ -139,13 +139,13 @@ def solveMagnetism_xz(fieldobject):
 
     #Define plot parameters for 1D figures
     ix0 = np.argmin(np.abs(x_vals))
-    Bx_cut_y = b1_array[:, ix0]  # vertical cut (x=0)
+    Bx_cut_z = b1_array[:, ix0]  # vertical cut (x=0)
 
 
     fig, axs = plt.subplots(1, 2, figsize = (12, 6))
     contour = axs[0].contourf(
         x_vals, z_vals, b1_array,
-        levels=np.linspace(0, 0.2, 200), 
+        levels=np.linspace(0, 0.01, 20), 
         cmap='viridis'
     )
     fig.colorbar(contour, label='B1 [T]')
@@ -155,7 +155,7 @@ def solveMagnetism_xz(fieldobject):
     axs[0].set_ylabel('Z [mm]')
 
     #1D field map, cut at x = 0
-    axs[1].plot(z_vals, Bx_cut_y, color='b')
+    axs[1].plot(z_vals, Bx_cut_z, color='b')
     axs[1].set_title('B1 through Z (X = 0)')
     axs[1].set_xlabel('Z [mm from origin]')
     axs[1].set_ylabel('B1 [T]')
@@ -192,6 +192,6 @@ if __name__=="__main__":
     B = rad.Fld(g, 'b', [0,0,3])
     print(B)
     print(np.linalg.norm(B))
-    solveMagnetism_xy(g)
+    #solveMagnetism_xy(g)
     #solveMagnetism_yz(g)
-    #solveMagnetism_xz(g)
+    solveMagnetism_xz(g)

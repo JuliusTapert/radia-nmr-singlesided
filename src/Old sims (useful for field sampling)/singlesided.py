@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pyvista as pv
 from uti_plot import *
+from shin_straight_coil import *
 
 #print(sys.path)
 
@@ -26,22 +27,16 @@ from uti_plot import *
 
 # [inner_radius, outer_radius, lx, h, seg, mg]
 tseg = 18
-magnet_vertical_spacing = 4.4
+magnet_vertical_spacing = 3.38
 outer_magnet_thickness = 25.4
-outer_magnet_height = outer_magnet_thickness/2
+outer_magnet_height = -outer_magnet_thickness/2
 
-###
-# Please note that on initialisation, the magnetism vector must point in -X so that
-# the rotation around Y will bring the magnetisation into positive Z before solving the field.
-# To position an object relative to the outer ring magnet, input its h value as the 
-# outer magnet lx/2 +/- (down/up on final rotation) object lx/2
-###
 
 # [inner_radius, outer_radius, lx, h, seg, mg]
-inner_ring_magnet = [1.6, 9.5, 11, (11/2+magnet_vertical_spacing), tseg, [-1.235, 0, 0]]
-outer_ring_magnet = [12.5, 25.4, outer_magnet_thickness, outer_magnet_height, tseg, [-1.235, 0, 0]]  
-steel_wall = [25.5, 35.4, 12.9, (outer_magnet_height+(12.9/2)), tseg]
-steel_baseplate = [2, 35.4, 10, (25.4 + 5), tseg]
+inner_ring_magnet = [1.6, 9.5, 11, -(11/2+magnet_vertical_spacing), tseg, [0, 0, 1.235]]
+outer_ring_magnet = [12.5, 25.4, outer_magnet_thickness, outer_magnet_height, tseg, [0, 0, 1.235]]  
+steel_wall = [25.5, 35.4, 12.9, (outer_magnet_height-(12.9/2)), tseg]
+steel_baseplate = [2, 35.4, 10, -(25.4 + 5), tseg]
 
 steelmat = rad.MatSatIsoFrm([20000,2],[0.1,2],[0.1,2])
 
@@ -63,7 +58,7 @@ def build_ring_geometry(inner_radius, outer_radius, lx, h, seg, mg = [0, 0, 0]):
             [inner_radius * math.cos(phi0), inner_radius * math.sin(phi0)]
         ]
 
-        wedge = rad.ObjThckPgn(h, lx, verts, mg)
+        wedge = rad.ObjThckPgn(h, lx, verts, 'z', mg)
         if mg == [0, 0, 0]:
             rad.ObjDrwAtr(wedge, [0.5, 0.5, 0.5])
         else: rad.ObjDrwAtr(wedge, [0.9, 0.2, 0.1])
@@ -79,10 +74,11 @@ for i in steel_assembly:
 full_assembly = rad.ObjCnt([build_ring_geometry(*inner_ring_magnet),        #inner ring magnet
                             build_ring_geometry(*outer_ring_magnet),     #outer ring magnet
                             #+ BuildGeometry(*aluminium_housing)     #aluminium housing ring
-                            *steel_assembly])  #steel baseplate
+                            #*steel_assembly                        #steel baseplate
+                            ])  
 
 #Apply symmetries to reduce geometry index
-rad.TrfZerPerp(full_assembly, [0,0,0], [0,0,1])
+rad.TrfZerPerp(full_assembly, [0,0,0], [1,0,0])
 rad.TrfZerPerp(full_assembly, [0,0,0], [0,1,0])
 
 rot = rad.TrfRot([0, 0, 0], [0, 1, 0], math.pi / 2)
@@ -116,15 +112,15 @@ def solve_magnetism_xz(fieldobject):
         levels=np.linspace(1000, 2000, 20), cmap='viridis'
     )
     fig.colorbar(contour, label='|B0| [G]')
-    axs[0].set_title('|B0| Contour Map (XZ Plane, Y = 0)')
+    axs[0].set_title('|B0| Contour Map without shield (XZ Plane, Y = 0)')
     axs[0].set_xlabel('X [mm]')
     axs[0].set_ylabel('Z [mm]')
 
     #1D field map, cut at x = 0
     axs[1].plot(z_vals, Bx_cut_y, color='b')
-    axs[1].set_xlim([3, 10])
-    axs[1].set_ylim([1670, 1730])
-    axs[1].set_title('|B0| through Z (X = 0)')
+    axs[1].set_xlim([0, 20])
+    #axs[1].set_ylim([1670, 1730])
+    axs[1].set_title('|B0| through Z without shield (X = 0)')
     axs[1].set_xlabel('Z [mm from origin]')
     axs[1].set_ylabel('|B0| [G]')
     axs[1].grid(True)
@@ -253,13 +249,13 @@ def GetB0FldList(fieldobject):
 if __name__=="__main__":
 
     #Build geometry and display in 3D
-    g = rad.TrfMlt(full_assembly, rot, 1)
+    g = full_assembly
     print('Geometry Index', g)
     #rad_vtk.plot_vtk(g)
-    res=rad.Solve(g, 0.00001, 150000)
+    #res=rad.Solve(g, 0.00001, 150000)
     #print("Solved: ", res)
     #print(np.array(GetB0FldList(g)) * 1e4)
 
-    #solve_magnetism_xz(g)
+    solve_magnetism_xz(g)
     #solve_magnetism_xy(g)
     #FieldIsoSurface(g)

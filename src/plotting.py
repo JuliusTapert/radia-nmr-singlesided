@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 
 def plot_contour(
@@ -10,48 +10,45 @@ def plot_contour(
     xlabel=None,
     ylabel=None,
     cbar_label=None,
-    levels=np.linspace(0.1,0.2,100),
+    ncontours=None,
     cmap="viridis",
     vmin=None,
     vmax=None
 ):
     """
-    Generic contour plot for 2D scalar fields.
-
-    Parameters
-    ----------
-    field_2d : ndarray (N2, N1)
-        2D scalar field.
-    axis1_vals : ndarray
-        Values along horizontal axis.
-    axis2_vals : ndarray
-        Values along vertical axis.
+    Generic contour plot for 2D scalar fields (Plotly version).
     """
 
-    fig, ax = plt.subplots(figsize=(6, 6))
+    # Handle color limits
+    zmin = vmin if vmin is not None else np.min(field_2d)
+    zmax = vmax if vmax is not None else np.max(field_2d)
 
-    contour = ax.contourf(
-        axis1_vals,
-        axis2_vals,
-        field_2d,
-        levels=levels,
-        cmap=cmap,
-        vmin=vmin,
-        vmax=vmax,
+    fig = go.Figure()
+
+    fig.add_trace(go.Contour(
+        z=field_2d,
+        x=axis1_vals,
+        y=axis2_vals,
+        colorscale=cmap,
+        zmin=zmin,
+        zmax=zmax,
+        ncontours=ncontours,
+        colorbar=dict(title=cbar_label),
+        line=dict(width=0),
+        contours=dict(
+            coloring="heatmap"  # filled contours
+        ),
+        hovertemplate=(
+            f"{xlabel}=%{{x:.2f}}<br>"
+            f"{ylabel}=%{{y:.2f}}<br>"
+            "Value=%{z:.3e}<extra></extra>"
+        )
+    ))
+
+    fig.update_layout(
+        title=title,
+        xaxis_title=xlabel,
+        yaxis_title=ylabel,
     )
 
-    cbar = fig.colorbar(contour)
-    if cbar_label:
-        cbar.set_label(cbar_label)
-    if title:
-        ax.set_title(title)
-    if xlabel:
-        ax.set_xlabel(xlabel)
-    if ylabel:
-        ax.set_ylabel(ylabel)
-
-    ax.set_aspect("auto")
-    plt.tight_layout()
-    plt.show()
-
-    return fig, ax
+    fig.show()
