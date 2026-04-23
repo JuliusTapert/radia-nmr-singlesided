@@ -39,10 +39,11 @@ def solver():
     # Load fields
     B0_vec, B1_vec, x_vals, z_vals = load_matlab_fields(MAT_FILE)
 
-    B1_data = np.load("B1_shinmagnet.npz")
+    # You can optionally load in a field from a Python .npz file for testing purposes
+    '''B1_data = np.load("B1_shinmagnet.npz")
     B1_vec = B1_data["B"]
     x_vals = B1_data["axis1"]
-    z_vals = B1_data["axis2"]
+    z_vals = B1_data["axis2"]'''
 
     # Magnitudes
     B0_mag = np.linalg.norm(B0_vec, axis=-1)
