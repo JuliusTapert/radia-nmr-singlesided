@@ -26,8 +26,8 @@ def build_ring_geometry(inner_radius, outer_radius, lz, h, tseg, mg=[0,0,0]):
 
 def build_steel_assembly(steel_baseplate, steel_wall, steelmat):
     """Builds steel assembly as a single Radia object and applies material."""
-    baseplate_obj = build_ring_geometry(**steel_baseplate.data)
-    wall_obj = build_ring_geometry(**steel_wall.data)
+    baseplate_obj = build_ring_geometry(**steel_baseplate.as_dict())
+    wall_obj = build_ring_geometry(**steel_wall.as_dict())
     steel_assembly = rad.ObjCnt([baseplate_obj, wall_obj])
     rad.MatApl(steel_assembly, steelmat)
     return steel_assembly
