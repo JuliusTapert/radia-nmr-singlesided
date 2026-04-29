@@ -160,7 +160,7 @@ def compute_cpmg_signal(
     signal_map = np.nan_to_num(signal_map)
 
     #Normalise signal_map to sit between 0 and 1 for ease of use
-    signal_map = signal_map / np.max(np.abs(signal_map[:,ix0]))
+    #signal_map = signal_map / np.max(np.abs(signal_map[:,ix0]))
 
     print("abs(signal_map) range:",
         np.min(np.abs(signal_map)),
