@@ -13,6 +13,7 @@ from coil import build_coil
 from field_sampling import *
 from plotting import plot_contour
 from sensitivity import *
+from test_presets import *
 
 
 # =========================================================
@@ -43,10 +44,10 @@ class CoilConfig:
 @dataclass
 class MagnetPreset:
     name: str
+    recess: float
     inner_magnet: CircularComponent
     outer_magnet: CircularComponent
     coil: CoilConfig
-    recess: float
     wall: Optional[CircularComponent] = None
     baseplate: Optional[CircularComponent] = None
 
@@ -58,12 +59,12 @@ class MagnetPreset:
 PRESETS: Dict[str, MagnetPreset] = {
     "SN001": MagnetPreset(
         name="SN001",
-        recess=4.35,
+        recess=4.4, # be sure to change this in inner_magnet.h as well
         inner_magnet=CircularComponent(
             inner_radius=1.6,
             outer_radius=9.5,
             lz=11,
-            h=-(11 / 2 + 4.35),
+            h=-(11 / 2 + 4.4), # 4.4 is the recess of our magnet, be aware of changing both
             tseg=18,
             mg=[0, 0, 1.235],
         ),
@@ -144,7 +145,7 @@ PRESETS: Dict[str, MagnetPreset] = {
             mg=[0, 0, 1.235],
         ),
         coil=CoilConfig(
-            positions=[0.5, 1.5, 2.5, 6, 7, 8],
+            positions=[1.0, 2.5, 4.0, 8.5, 10.0, 11.5],
             thickness=1.4,
             current=4.0,
         ),
@@ -167,13 +168,20 @@ PRESETS: Dict[str, MagnetPreset] = {
     )
 }
 
+d_coil_current = 4.0
+d_coil = rad.ObjFlmCur([[-0.5,-7.5,0], [-0.5,7.5,0], [-0.845,7.845,0], [-2.00,7.845,0], [-3.00,7.45,0], [-3.80,7,0], [-5.40,5.90,0], [-6.7,4.30,0], [-7.40,2.73,0], [-8.00,1,0], [-8.00,-1,0], [-7.40,-2.73,0], [-6.7,-4.3,0], [-5.4,-5.9,0], [-3.80,-7,0], [-2.00,-7.51,0], [-1.50,-7.00,0], 
+                      [-1.50,6.00,0], [-2.00,6.50,0], [-2.84,6.42,0], [-3.92,5.75,0], [-4.82,5.10,0], [-5.60,4.30,0], [-6.31,3.00,0], [-6.75,1.90,0], [-6.93,0.5,0], [-6.93,-0.5,0], [-6.75,-1.90,0], [-6.31,-3.00,0], [-5.60,-4.30,0], [-4.82,-5.10,0], [-3.92,-5.75,0], [-3.00,-5.64,0], [-2.50,-5.15,0],
+                      [-2.50,4.25,0], [-2.95,4.70,0], [-3.72,4.70,0], [-4.30,4.20,0], [-5.00,3.40,0], [-5.42,2.50,0], [-5.84,2.00,0], [-5.95,0.50,0], [-5.95,-0.50,0], [-5.84,-2.00,0], [-5.42,-2.50,0], [-5.00,-3.40,0], [-4.30,-4.20,0], [-3.72,-4.70,0]
+                      ], d_coil_current)
+
+#create a planar symmetry parallel to the x axis
+rad.TrfZerPara(d_coil, [0,0,0], [1,0,0])
 
 # =========================================================
 # Builder
 # =========================================================
 
-def magnet_builder(preset_name: str):
-    preset = PRESETS[preset_name]
+def magnet_builder(preset):
 
     steelmat = rad.MatSatIsoFrm([20000, 2], [0.1, 2], [0.1, 2])
 
@@ -185,7 +193,6 @@ def magnet_builder(preset_name: str):
     if preset.wall:
         steel_obj = build_steel_assembly(preset.baseplate, preset.wall, steelmat)
         components.append(steel_obj)
-        needs_solve = True
 
     magnet_assembly = rad.ObjCnt(components)
 
@@ -199,15 +206,15 @@ def magnet_builder(preset_name: str):
         lx=preset.coil.lx,
     )
 
-    return magnet_assembly, coil_obj, needs_solve, preset
+    return magnet_assembly, coil_obj, preset
 
 
 # =========================================================
 # Solver
 # =========================================================
 
-def solver(g, coil, needs_solve, preset: MagnetPreset):
-    if needs_solve:
+def solver(g, coil, preset: MagnetPreset):
+    if preset.wall:
         rad.Solve(g, 1e-5, 150000)
 
     print("Geometry index:", g)
@@ -347,8 +354,9 @@ def solver(g, coil, needs_solve, preset: MagnetPreset):
 # =========================================================
 
 def main():
-    mag, coil, needs_solve, preset = magnet_builder("Test")
-    solver(mag, coil, needs_solve, preset)
+    for preset in test_presets.values():
+        mag, coil, preset = magnet_builder(preset)
+        solver(mag, coil, preset)
 
 if __name__ == "__main__":
     main()
